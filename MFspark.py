@@ -35,7 +35,7 @@ def pred_diff(r,u,v):
         The return value is the difference
           - δ =  <u,v> - r
     """
-    pass
+    return predict(u, v) - r
 
 def gradient_u(delta,u,v):
     """ Given a user profile u and an item profile v, and the difference in rating predictions δ, compute the gradient
