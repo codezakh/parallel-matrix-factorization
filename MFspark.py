@@ -135,13 +135,13 @@ def generateItemProfiles(R,d,seed,sparkContext,N):
 
         The return value is an RDD containing the item profiles
     """
-    V = R.map(lambda i, j, rij: j).distinct(numPartitions = N)
+    V = R.map(lambda (i, j, rij): j).distinct(numPartitions = N)
     numItems = V.count()
     randRDD = RandomRDDs.normalVectorRDD(sparkContext, numItems, d, numPartitions=N,
         seed=seed)
     V = V.zipWithIndex().map(swap)
     randRDD = randRDD.zipWithIndex().map(swap)
-    return U.join(randRDD, numPartitions=N).values()
+    return V.join(randRDD, numPartitions=N).values()
 
 
 
@@ -165,7 +165,27 @@ def joinAndPredictAll(R,U,V,N):
         is the prediction difference.
 
     """
-    pass
+    def regroup_j(element):
+        i, j, rij = element
+        return j, (i, rij)
+    def regroup_i(element):
+        j, (i, rij, vj) =  element
+        return i, (j, rij, vj)
+
+    j_i_rij = R.map(regroup_j)
+    j_i_rij_vj = j_i_rij.join(V).map(
+        lambda (j, ( (i, rij ), vj )  ) : (j, (i, rij, vj))
+    )
+
+    i_j_rij_vj = j_i_rij_vj.map(regroup_i)
+    i_j_rij_vj_ui = i_j_rij_vj.join(U)
+    i_j_rij_vj_ui = i_j_rij_vj_ui.map(
+        lambda (i, ( (j, rij, vj), ui ) ): (i, j, ui, vj, rij)
+    )
+
+    return i_j_rij_vj_ui
+
+
 
 
 
