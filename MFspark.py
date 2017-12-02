@@ -135,7 +135,13 @@ def generateItemProfiles(R,d,seed,sparkContext,N):
 
         The return value is an RDD containing the item profiles
     """
-    pass
+    V = R.map(lambda i, j, rij: j).distinct(numPartitions = N)
+    numItems = V.count()
+    randRDD = RandomRDDs.normalVectorRDD(sparkContext, numItems, d, numPartitions=N,
+        seed=seed)
+    V = V.zipWithIndex().map(swap)
+    randRDD = randRDD.zipWithIndex().map(swap)
+    return U.join(randRDD, numPartitions=N).values()
 
 
 
