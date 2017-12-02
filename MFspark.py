@@ -216,7 +216,7 @@ def normSqRDD(profileRDD,param):
         The return value is:
         λ Σ_i ||ui||_2^2
     """
-    pass
+    return profileRDD.map(lambda (i, u): np.linalg.norm(u, 2)**2).sum() * param
 
 def adaptU(joinedRDD,gamma,lam,N):
     """ Receives as input a joined RDD
