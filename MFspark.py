@@ -203,7 +203,7 @@ def SE(joinedRDD):
 
         The output is the SE.
     """
-    pass
+    return joinedRDD.map(lambda (i, j, delta_ij, ui, vj): delta_ij**2).sum()
 
 def normSqRDD(profileRDD,param):
     """ Receives as input an RDD of profiles (e.g., U) as well as a parameter (e.g., λ) and computes the square of norms:
