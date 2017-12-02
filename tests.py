@@ -3,8 +3,10 @@ import unittest
 from pyspark import SparkContext
 import numpy as np
 
-from MFspark import predict, pred_diff, gradient_u, gradient_v
+from MFspark import (predict, pred_diff, gradient_u, gradient_v,
+                    generateItemProfiles, generateUserProfiles)
 
+import MFspark
 
 class GradientPredictionTestCase(unittest.TestCase):
     def test_predict(self):
@@ -29,13 +31,27 @@ class GradientPredictionTestCase(unittest.TestCase):
         self.assertEqual(list(computed_gradient_v), list(2 * item_profile))
 
 
-# class ParallelLogisticRegressionTestCase(unittest.TestCase):
-#     @classmethod
-#     def setUpClass(cls):
-#         super(ParallelLogisticRegressionTestCase, cls).setUpClass()
-#         cls.sc = SparkContext(appName="ParallelLogisticRegressionTestCase")
-#
-#     @classmethod
-#     def tearDownClass(cls):
-#         super(ParallelLogisticRegressionTestCase, cls).tearDownClass()
-#         cls.sc.stop()
+class ItemProfileTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(ItemProfileTestCase, cls).setUpClass()
+        cls.sc = SparkContext(appName="ItemProfileTestCase")
+
+    @classmethod
+    def tearDownClass(cls):
+        super(ItemProfileTestCase, cls).tearDownClass()
+        cls.sc.stop()
+
+    def test_normSqRdd(self):
+        rdd = self.sc.parallelize([
+        (1, np.ones(4)),
+        (2, np.ones(4)),
+        (3, np.ones(4)),
+        ])
+        self.assertEqual(MFspark.normSqRDD(rdd, 1), 12)
+
+
+
+
+if __name__ == "__main__":
+    unittest.main()
