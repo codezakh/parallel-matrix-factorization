@@ -171,6 +171,10 @@ def joinAndPredictAll(R,U,V,N):
     def regroup_i(element):
         j, (i, rij, vj) =  element
         return i, (j, rij, vj)
+    def group_pred_diff(element):
+        i, j, ui, vj, rij = element
+        delta_ij = pred_diff(r, u, v)
+        return i, j, delta_ij, ui, vj
 
     j_i_rij = R.map(regroup_j)
     j_i_rij_vj = j_i_rij.join(V).map(
@@ -183,7 +187,7 @@ def joinAndPredictAll(R,U,V,N):
         lambda (i, ( (j, rij, vj), ui ) ): (i, j, ui, vj, rij)
     )
 
-    return i_j_rij_vj_ui
+    return i_j_rij_vj_ui.map(group_pred_diff)
 
 
 
