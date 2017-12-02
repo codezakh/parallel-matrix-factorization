@@ -22,6 +22,12 @@ class GradientPredictionTestCase(unittest.TestCase):
         difference = pred_diff(rating, user_profile, item_profile)
         self.assertEqual(difference, 0)
 
+    def test_gradient_u(self):
+        user_profile = np.ones((3,1))
+        item_profile = np.ones((3,1))
+        computed_gradient_v = gradient_u(1, user_profile, item_profile)
+        self.assertEqual(list(computed_gradient_v), list(2 * item_profile))
+
 
 # class ParallelLogisticRegressionTestCase(unittest.TestCase):
 #     @classmethod
