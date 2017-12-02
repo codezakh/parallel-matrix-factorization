@@ -75,7 +75,7 @@ def gradient_v(delta,u,v):
         The return value is
           - the gradient w.r.t. v
     """
-    pass
+    return 2 * delta * u
 
 def readRatings(file,sparkContext):
     """ Read the ratings from a file and store them in an rdd containing tuples of the form:
