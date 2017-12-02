@@ -54,7 +54,7 @@ def gradient_u(delta,u,v):
         The return value is
           - The gradient w.r.t. u
     """
-    pass
+    return 2 * delta * v
 
 
 
