@@ -237,7 +237,12 @@ def adaptU(joinedRDD,gamma,lam,N):
 
         The return value  is an RDD with tuples of the form (i,ui). The returned rdd contains exactly N partitions.
     """
-    pass
+    grad_mse = 2 * joinedRDD.map(lambda (i, j, delta_ij, ui, vj): delta_ij * vj).sum()
+    U = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (i, ui)).distinct(numPartitions=N)
+    V = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (j, vj)).distinct(numPartitions=N)
+    grad_regularization = V.map(lambda (j, v): v).sum() * lam * 2
+    full_grad = grad_mse + grad_regularization
+    return U.map(lambda (i, u): (i, u - gamma * full_grad))
 
 
 
