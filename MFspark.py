@@ -177,12 +177,12 @@ def joinAndPredictAll(R,U,V,N):
         return i, j, delta_ij, ui, vj
 
     j_i_rij = R.map(regroup_j)
-    j_i_rij_vj = j_i_rij.join(V).map(
+    j_i_rij_vj = j_i_rij.join(V, numPartitions=N).map(
         lambda (j, ( (i, rij ), vj )  ) : (j, (i, rij, vj))
     )
 
     i_j_rij_vj = j_i_rij_vj.map(regroup_i)
-    i_j_rij_vj_ui = i_j_rij_vj.join(U)
+    i_j_rij_vj_ui = i_j_rij_vj.join(U, numPartitions=N)
     i_j_rij_vj_ui = i_j_rij_vj_ui.map(
         lambda (i, ( (j, rij, vj), ui ) ): (i, j, ui, vj, rij)
     )
@@ -265,8 +265,12 @@ def adaptV(joinedRDD,gamma,mu,N):
 
         The return value  is an RDD with tuples of the form (i,vi). The returned rdd contains exactly N partitions.
     """
-
-    pass
+    grad_mse = 2 * joinedRDD.map(lambda (i, j, delta_ij, ui, vj): delta_ij * ui).sum()
+    U = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (i, ui)).distinct(numPartitions=N)
+    V = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (j, vj)).distinct(numPartitions=N)
+    grad_regularization = U.map(lambda (i, u): u).sum() * mu * 2
+    full_grad = grad_mse + grad_regularization
+    return V.map(lambda (j, vj): (j, vj - gamma * full_grad))
 
 
 if __name__=="__main__":
