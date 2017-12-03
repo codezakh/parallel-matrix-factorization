@@ -237,12 +237,17 @@ def adaptU(joinedRDD,gamma,lam,N):
 
         The return value  is an RDD with tuples of the form (i,ui). The returned rdd contains exactly N partitions.
     """
-    grad_mse = 2 * joinedRDD.map(lambda (i, j, delta_ij, ui, vj): delta_ij * vj).sum()
-    U = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (i, ui)).distinct(numPartitions=N)
-    V = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (j, vj)).distinct(numPartitions=N)
-    grad_regularization = V.map(lambda (j, v): v).sum() * lam * 2
+    _, grad_mse = joinedRDD.map(
+        lambda (i, j, delta_ij, ui, vj): (0, delta_ij * vj)).reduceByKey(add).first()
+    grad_mse = grad_mse * 2
+    U = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (i, tuple(ui))
+        ).distinct(numPartitions=N).map(lambda (i, ui): (i, np.array(ui)))
+    V = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (j, tuple(vj))
+        ).distinct(numPartitions=N).map(lambda (j, vj): (j, np.array(vj)))
+    _, grad_regularization = V.map(lambda (j, vj): (0, vj)).reduceByKey(add).first()
+    grad_regularization = grad_regularization * 2 * lam
     full_grad = grad_mse + grad_regularization
-    return U.map(lambda (i, u): (i, u - gamma * full_grad))
+    return U.map(lambda (i, u): (i, u + gamma * full_grad))
 
 
 
@@ -265,12 +270,17 @@ def adaptV(joinedRDD,gamma,mu,N):
 
         The return value  is an RDD with tuples of the form (i,vi). The returned rdd contains exactly N partitions.
     """
-    grad_mse = 2 * joinedRDD.map(lambda (i, j, delta_ij, ui, vj): delta_ij * ui).sum()
-    U = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (i, ui)).distinct(numPartitions=N)
-    V = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (j, vj)).distinct(numPartitions=N)
-    grad_regularization = U.map(lambda (i, u): u).sum() * mu * 2
+    _, grad_mse = joinedRDD.map(
+        lambda (i, j, delta_ij, ui, vj): (0, delta_ij * ui)).reduceByKey(add).first()
+    grad_mse = grad_mse * 2
+    U = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (i, tuple(ui))
+        ).distinct(numPartitions=N).map(lambda (i, ui): (i, np.array(ui)))
+    V = joinedRDD.map(lambda (i, j, delta_ij, ui, vj): (j, tuple(vj))
+        ).distinct(numPartitions=N).map(lambda (j, vj): (j, np.array(vj)))
+    _, grad_regularization = U.map(lambda (i, u): (0, u)).reduceByKey(add).first()
+    grad_regularization = grad_regularization * 2 * mu
     full_grad = grad_mse + grad_regularization
-    return V.map(lambda (j, vj): (j, vj - gamma * full_grad))
+    return V.map(lambda (j, vj): (j, vj + gamma * full_grad))
 
 
 if __name__=="__main__":
@@ -358,26 +368,22 @@ if __name__=="__main__":
             i += 1
 
             joinedRDD = joinAndPredictAll(train,U,V,args.N).cache()
-
             oldObjective = obj
             obj = SE(joinedRDD) + normSqRDD(U,args.lam) + normSqRDD(V,args.mu)
             change = np.abs(obj-oldObjective)
 
             testRMSE = np.sqrt(1.*SE(joinAndPredictAll(test,U,V,args.N))/Mtest)
-
             gamma = args.gain / i**args.power
             U.unpersist()
             V.unpersist()
             U = adaptU(joinedRDD,gamma,args.lam,args.N).cache()
             V = adaptV(joinedRDD,gamma,args.mu,args.N).cache()
-
             now = time()-start
             print "Iteration: %d\tTime: %f\tObjective: %f\tTestRMSE: %f" % (i,now,obj,testRMSE)
 
             joinedRDD.unpersist()
 
         cross_val_rmses.append(testRMSE)
-
         train.unpersist()
         test.unpersist()
 
